@@ -2,10 +2,14 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
+	"time"
 )
 
 var fileName = "G:\\workspace\\peifang.txt"
@@ -33,6 +37,17 @@ func ioutilOpera(file *os.File) {
 }
 
 func init() {
+	db, err := sql.Open("mysql", "root:Chiu123456*@tcp(139.199.225.106:3306)/chat-server")
+	if err != nil {
+		panic(err)
+	}
+	// See "Important settings" section.
+	db.SetConnMaxLifetime(time.Minute * 3)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+}
+
+func init1() {
 
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -117,6 +132,38 @@ func creatFileByBufio(fileName string) {
 	}
 	writer.Flush()
 }
+
+func main() {
+
+	dial, err := net.Dial("tcp", "localhost:8081")
+	if err != nil {
+		fmt.Println("主机不存在!!!")
+		return
+	}
+	defer dial.Close()
+	reader := bufio.NewReader(os.Stdin)
+	go readMsg(dial)
+	for true {
+		content, _ := reader.ReadString('\n')
+		dial.Write([]byte(content))
+	}
+
+}
+
+func readMsg(dial net.Conn) {
+
+	var msg []byte = make([]byte, 1024)
+
+	for true {
+		read, err := dial.Read(msg)
+		if err != nil {
+			return
+		}
+		fmt.Println("收到的信息: ", string(msg[:read]))
+	}
+
+}
+
 func main1() {
 	//creatFile("G:\\workspace\\peifang1.txt")
 	//creatFileByBufio("G:\\workspace\\peifang2.txt")
